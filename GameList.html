@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>游戏清单</title>
+  <style>
+    :root {
+      --bg: #101214;
+      --bg-soft: #171a1d;
+      --panel: #1c2024;
+      --line: #2a3036;
+      --text: #e8e4da;
+      --muted: #9aa3ad;
+      --accent: #d4a373;
+      --plan: #7eb8c9;
+      --fun: #c9b87e;
+      --skip: #c97e7e;
+      --danger: #e07a5f;
+      --dup: #c9b87e;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(1200px 500px at 10% -10%, rgba(212, 163, 115, 0.08), transparent 50%),
+        radial-gradient(900px 400px at 90% 0%, rgba(126, 184, 201, 0.07), transparent 45%),
+        var(--bg);
+      color: var(--text);
+    }
+    .app { max-width: 1280px; margin: 0 auto; padding: 28px 20px 64px; }
+    header { display: flex; flex-direction: column; gap: 16px; margin-bottom: 18px; }
+    h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: 0.04em; font-weight: 650; }
+    .sub { margin: 0; color: var(--muted); font-size: 14px; }
+    .toolbar, .sheet-bar, .modal-actions, .row-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    input, select, textarea, button { font: inherit; color: var(--text); }
+    .search, select.filter, .composer .cell {
+      height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--bg-soft);
+      outline: none;
+    }
+    .search { flex: 1 1 220px; min-width: 180px; max-width: 360px; }
+    .search:focus, select:focus, .composer .cell:focus, td .cell:focus { border-color: var(--accent); }
+    button {
+      height: 40px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      cursor: pointer;
+    }
+    button:hover { border-color: #3d454d; }
+    button.primary { background: var(--accent); color: #1a140e; border-color: transparent; font-weight: 650; }
+    button.ghost { background: transparent; }
+    button.danger { color: var(--danger); }
+    button.small { height: 30px; padding: 0 9px; font-size: 12px; }
+    .toggle { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 13px; }
+    .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .stat b { display: block; font-size: 22px; margin-top: 4px; }
+    .stat span { color: var(--muted); font-size: 12px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .panel.dupes { border-color: #6a5a32; }
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+    .panel-head h2, .panel-head h3 { margin: 0 0 4px; font-size: 16px; }
+    .panel-head p { margin: 0; color: var(--muted); font-size: 13px; }
+    .sheet-bar { padding: 10px 16px; border-bottom: 1px solid var(--line); }
+    .table-wrap { overflow: auto; max-height: min(70vh, 820px); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #22272c;
+      text-align: left;
+      font-weight: 600;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    th.nosort { cursor: default; }
+    td { border-bottom: 1px solid var(--line); vertical-align: middle; padding: 0; }
+    td.num, td.act { padding: 6px 10px; color: var(--muted); white-space: nowrap; }
+    tr:hover td { background: rgba(255, 255, 255, 0.03); }
+    tr.dup td { background: rgba(201, 184, 126, 0.08); }
+    tr.similar td { background: rgba(126, 184, 201, 0.08); }
+    td .cell {
+      flex: 1;
+      width: 100%;
+      height: 38px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      padding: 8px 10px;
+    }
+    .name-cell { display: flex; align-items: center; gap: 6px; }
+    td .cell:focus { background: #101418; }
+    select.cell { appearance: auto; }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 2px 7px;
+      background: rgba(201, 184, 126, 0.18);
+      color: var(--dup);
+    }
+    .cat-plan { color: var(--plan); }
+    .cat-fun { color: var(--fun); }
+    .cat-skip { color: var(--skip); }
+    .empty { color: var(--muted); text-align: center; padding: 28px 8px; }
+    .composer { display: grid; grid-template-columns: 1.6fr 140px 1fr 1.2fr auto; gap: 8px; padding: 12px 16px; }
+    dialog {
+      width: min(480px, 92vw);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #1a1e22;
+      color: var(--text);
+      padding: 0;
+      box-shadow: var(--shadow);
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
+    .modal { padding: 18px; }
+    .modal h3 { margin: 0 0 14px; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--bg-soft);
+      padding: 10px 12px;
+    }
+    .field textarea { min-height: 72px; resize: vertical; }
+    .modal-actions { justify-content: flex-end; margin-top: 8px; }
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      background: #22272c;
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 10px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+      z-index: 20;
+    }
+    .toast.show { opacity: 1; }
+    @media (max-width: 980px) {
+      .stats { grid-template-columns: 1fr 1fr; }
+      .composer { grid-template-columns: 1fr; }
+      .search { max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>游戏清单</h1>
+        <p class="sub">CSV 表格样式，单文件本地管理。支持增删改查、分类筛选，重复项单独列出。</p>
+      </div>
+      <div class="toolbar">
+        <input class="search" id="search" placeholder="搜索游戏 / 标签 / 备注" />
+        <select class="filter" id="filterCat">
+          <option value="">全部分类</option>
+          <option value="plan">计划中</option>
+          <option value="fun">好玩</option>
+          <option value="skip">不好玩</option>
+        </select>
+        <label class="toggle"><input type="checkbox" id="hideDupes" checked /> 主表隐藏重复项</label>
+        <button class="primary" id="addBtn">添加游戏</button>
+        <button class="ghost" id="exportCsvBtn">导出 CSV</button>
+        <button class="ghost" id="exportMdBtn">导出 Markdown</button>
+        <button class="ghost" id="exportJsonBtn">导出 JSON</button>
+        <button class="ghost" id="importBtn">导入</button>
+        <button class="ghost danger" id="resetBtn">恢复原文</button>
+        <input type="file" id="fileInput" accept=".csv,.json,text/csv,application/json" hidden />
+      </div>
+    </header>
+
+    <section class="stats">
+      <div class="stat"><span>全部</span><b id="statAll">0</b></div>
+      <div class="stat"><span>计划中</span><b id="statPlan">0</b></div>
+      <div class="stat"><span>好玩</span><b id="statFun">0</b></div>
+      <div class="stat"><span>不好玩</span><b id="statSkip">0</b></div>
+      <div class="stat"><span>重复组</span><b id="statDup">0</b></div>
+    </section>
+
+    <section class="panel dupes" id="dupes" hidden>
+      <div class="panel-head">
+        <div>
+          <h2>重复项</h2>
+          <p>同名条目单独列在这里，方便对比后只留一条。</p>
+        </div>
+        <button class="ghost" id="keepFirstAll">每组保留第一条</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="nosort">名称</th>
+              <th class="nosort">分类</th>
+              <th class="nosort">标签</th>
+              <th class="nosort">备注</th>
+              <th class="nosort">操作</th>
+            </tr>
+          </thead>
+          <tbody id="dupeBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" id="similar" hidden>
+      <div class="panel-head">
+        <div>
+          <h3>可能重复</h3>
+          <p>名字接近但不完全相同，需要你自己判断。</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="nosort">名称</th>
+              <th class="nosort">分类</th>
+              <th class="nosort">标签</th>
+              <th class="nosort">备注</th>
+              <th class="nosort">操作</th>
+            </tr>
+          </thead>
+          <tbody id="similarBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="sheet-bar">
+        <strong>清单表格</strong>
+        <span class="sub" id="sheetHint"></span>
+      </div>
+      <div class="table-wrap">
+        <table id="sheet">
+          <thead>
+            <tr>
+              <th data-sort="index">#</th>
+              <th data-sort="title">名称</th>
+              <th data-sort="category">分类</th>
+              <th data-sort="tags">标签</th>
+              <th data-sort="note">备注</th>
+              <th class="nosort">操作</th>
+            </tr>
+          </thead>
+          <tbody id="sheetBody"></tbody>
+        </table>
+      </div>
+      <form class="composer" id="composer">
+        <input class="cell" id="newTitle" placeholder="新游戏名称" required />
+        <select class="cell" id="newCategory">
+          <option value="plan">计划中</option>
+          <option value="fun">好玩</option>
+          <option value="skip">不好玩</option>
+        </select>
+        <input class="cell" id="newTags" placeholder="标签，逗号分隔" />
+        <input class="cell" id="newNote" placeholder="备注" />
+        <button class="primary" type="submit">追加一行</button>
+      </form>
+    </section>
+  </div>
+
+  <dialog id="editor">
+    <form class="modal" id="editorForm">
+      <h3 id="editorTitle">添加游戏</h3>
+      <input type="hidden" id="editId" />
+      <div class="field">
+        <label for="editTitle">名称</label>
+        <input id="editTitle" required maxlength="120" />
+      </div>
+      <div class="field">
+        <label for="editCategory">分类</label>
+        <select id="editCategory">
+          <option value="plan">计划中</option>
+          <option value="fun">好玩</option>
+          <option value="skip">不好玩</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="editTags">标签（逗号分隔）</label>
+        <input id="editTags" placeholder="EA, 生肉" />
+      </div>
+      <div class="field">
+        <label for="editNote">备注</label>
+        <textarea id="editNote" maxlength="200"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="ghost" id="cancelEdit">取消</button>
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = "game-list-sheet-v1";
+    const CATEGORIES = { plan: "计划中", fun: "好玩", skip: "不好玩" };
+    const DEFAULT_GAMES = [
+  {
+    "title": "骇兽少女",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "兔头巾",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "特工 17",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "永恒世界",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "Mahou Arms",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "驱动妖精",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "赤莲忍法帖",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "爱丽丝的摇篮",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "魔法高潮",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "触手少女狩猎 廃校でイグイグ～",
+    "category": "plan",
+    "tags": [
+      "没中文"
+    ],
+    "note": ""
+  },
+  {
+    "title": "幽灵牛奶生活",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "Fallen Doll",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "不双修就去世",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "恶魔石板和犬公主",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "群青的魔女",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "フォレスティア～ちいさな町の牧場ライフ",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "和存在感薄弱的妹妹",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "酒鬼女神的酒诡",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "英雄派对必须陨落",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "玩家的挣扎(gamer struggles)",
+    "category": "plan",
+    "tags": [
+      "生肉"
+    ],
+    "note": ""
+  },
+  {
+    "title": "赫雷斯的角斗场3",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "虚幻寓言",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "公主协同效应",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "她本不该在这里",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "克莱尔斯特拉格尔",
+    "category": "plan",
+    "tags": [
+      "EA"
+    ],
+    "note": ""
+  },
+  {
+    "title": "魔力丧失",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "苍色之光",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "大侠狂想曲",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "爸爸活无双",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "夏娃年代记",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "来自边境",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "脱衣麻将",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "她不该在这里",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "嘿，陌生人！我赌你会爱上我！",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "妹（姐）想把哥（弟）的性癖扭曲！",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "鸡鸡硬硬公园",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "亚洲之子：东方之乡",
+    "category": "plan",
+    "tags": [],
+    "note": "SOA就是个混蛋"
+  },
+  {
+    "title": "阿, 幽灵",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "天狗之廓",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "Dead-End City",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "乱斗少女",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "Luna",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "下一个女孩",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "谪仙索欢录",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "3C二手维修店",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "魔女秘药",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "绯月仙行录",
+    "category": "plan",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "魅魔咏叹调",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "时奸勇者",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "恶魔酱的五日恶戏",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "妖梦员",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "酒店故事",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "救生员狂热",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "爱丽丝编年史",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "45号电车",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "魅魔继承者",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "魅魔赌场",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "春销卡牌斗士",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "绯月仙行录",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "怪兽公主傲慢",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "怪兽公主暴食",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "魅魔之森",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "勇者大战魔物娘 RPG",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "勇者大战魔物娘 ADV",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "社群审查",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "奴隶之剑",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "抓到冒险者酱",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "妖魔娼馆",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "半妖忍少女",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "希尔薇",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "翻转女巫",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "优艳之花",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "Unholy Maiden",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "监狱勇者",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "异世界魔物娘悦乐记",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "傭兵の冒険",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "被囚禁的莉莉",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "骑士情缘",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "乡村狂想曲",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "纳卡拉",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "魅惑城堡",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "遗迹探索者",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "魅惑之翼少女的爆衣攻略",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "末代魔王",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "冒险途中全员告白",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "IVAV2",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "妖梦员",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "魔导士小奏的扶她地牢探险",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "异世界大老二",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "伊莱：非人类",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "校园泳装少女快乐拷问模拟",
+    "category": "fun",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "淫乱迷宫",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "夜幕之花",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "哥布林小鬼与骑士先生",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "怪兽公主怠惰",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "忍堕－女忍调教",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "暗黑游乐园默示录",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "黄毛漂流记",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "幻欲游乐园2",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "怪物黑市",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "精灵谷物语",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "出生在异世界的我在歌舞伎听打黑工",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "伊甸守护者",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "后宫绮梦",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "乡村狂想曲",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "纳卡拉",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "罪恶尖塔",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "稻禾五谷神",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "肛门的逆袭",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "异世界魔物娘欢愉记",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "一次, 球球你让我",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "鬼谷八荒",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "侠女逍遥录",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "青楼之王",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "卡片皇后",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "おしおき娘々R",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "隧道逃生",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "田舍生活",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "性癖讨论 3章",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "妖谈",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "催眠之蚀",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "魅惑万花筒",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "尼特与天使与色色家族",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "苦主救助中心",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "猫与地下城",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "尼特与天使与色色家族",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "牛奶冲刺 – 两条路径",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  },
+  {
+    "title": "社畜魅魔",
+    "category": "skip",
+    "tags": [],
+    "note": ""
+  }
+];
+
+    let games = [];
+    let query = "";
+    let filterCat = "";
+    let hideDupes = true;
+    let sortKey = "index";
+    let sortDir = 1;
+
+    function uid() {
+      return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random();
+    }
+
+    function seed(list) {
+      return list.map((item) => ({
+        id: uid(),
+        title: item.title.trim(),
+        category: item.category,
+        tags: [...(item.tags || [])],
+        note: item.note || "",
+      }));
+    }
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return seed(DEFAULT_GAMES);
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return seed(DEFAULT_GAMES);
+        return parsed.map((item) => ({
+          id: item.id || uid(),
+          title: String(item.title || "").trim(),
+          category: CATEGORIES[item.category] ? item.category : "plan",
+          tags: Array.isArray(item.tags) ? item.tags.filter(Boolean) : parseTags(item.tags || ""),
+          note: String(item.note || ""),
+        })).filter((item) => item.title);
+      } catch {
+        return seed(DEFAULT_GAMES);
+      }
+    }
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(games));
+    }
+
+    function toast(message) {
+      const el = document.getElementById("toast");
+      el.textContent = message;
+      el.classList.add("show");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.remove("show"), 1800);
+    }
+
+    function parseTags(value) {
+      return String(value || "").split(/[,，]/).map((t) => t.trim()).filter(Boolean);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function titleKey(title) {
+      return String(title).trim().toLowerCase().replace(/\s+/g, "");
+    }
+
+    function normalizeTitle(title) {
+      return String(title)
+        .toLowerCase()
+        .replace(/[（）()【】\[\].,，。!！?？:：·\-—_]/g, "")
+        .replace(/\s+/g, "");
+    }
+
+    function findGame(id) {
+      return games.find((g) => g.id === id);
+    }
+
+    function exactDuplicateGroups() {
+      const map = new Map();
+      for (const game of games) {
+        const key = titleKey(game.title);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(game);
+      }
+      return [...map.values()].filter((group) => group.length > 1);
+    }
+
+    function levenshtein(a, b) {
+      const rows = a.length + 1;
+      const cols = b.length + 1;
+      const matrix = Array.from({ length: rows }, () => Array(cols).fill(0));
+      for (let i = 0; i < rows; i += 1) matrix[i][0] = i;
+      for (let j = 0; j < cols; j += 1) matrix[0][j] = j;
+      for (let i = 1; i < rows; i += 1) {
+        for (let j = 1; j < cols; j += 1) {
+          const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+          matrix[i][j] = Math.min(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost);
+        }
+      }
+      return matrix[a.length][b.length];
+    }
+
+    function similarGroups() {
+      const unique = [];
+      const seen = new Set();
+      for (const game of games) {
+        const key = normalizeTitle(game.title);
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        unique.push(key);
+      }
+      const used = new Set();
+      const groups = [];
+      for (let i = 0; i < unique.length; i += 1) {
+        if (used.has(unique[i])) continue;
+        const cluster = [unique[i]];
+        for (let j = i + 1; j < unique.length; j += 1) {
+          if (used.has(unique[j])) continue;
+          const maxLen = Math.max(unique[i].length, unique[j].length);
+          if (maxLen >= 7 && levenshtein(unique[i], unique[j]) <= 2) cluster.push(unique[j]);
+        }
+        if (cluster.length > 1) {
+          cluster.forEach((key) => used.add(key));
+          groups.push(games.filter((game) => cluster.includes(normalizeTitle(game.title))));
+        }
+      }
+      return groups;
+    }
+
+    function matches(game) {
+      if (filterCat && game.category !== filterCat) return false;
+      if (!query) return true;
+      const hay = [game.title, game.note, ...(game.tags || [])].join(" ").toLowerCase();
+      return hay.includes(query);
+    }
+
+    function csvEscape(value) {
+      const text = String(value ?? "");
+      if (/[",\n]/.test(text)) return '"' + text.replaceAll('"', '""') + '"';
+      return text;
+    }
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let quoted = false;
+      const src = text.replace(/^\uFEFF/, "");
+      for (let i = 0; i < src.length; i += 1) {
+        const ch = src[i];
+        if (quoted) {
+          if (ch === '"' && src[i + 1] === '"') { cell += '"'; i += 1; }
+          else if (ch === '"') quoted = false;
+          else cell += ch;
+        } else if (ch === '"') quoted = true;
+        else if (ch === ",") { row.push(cell); cell = ""; }
+        else if (ch === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
+        else if (ch !== "\r") cell += ch;
+      }
+      if (cell.length || row.length) { row.push(cell); rows.push(row); }
+      return rows.filter((r) => r.some((c) => String(c).trim()));
+    }
+
+    function toCsv() {
+      const lines = [["名称", "分类", "标签", "备注"].map(csvEscape).join(",")];
+      for (const game of games) {
+        lines.push([game.title, CATEGORIES[game.category], game.tags.join("，"), game.note].map(csvEscape).join(","));
+      }
+      return lines.join("\n") + "\n";
+    }
+
+    function toMarkdown() {
+      const lines = ["# 游戏概述", ""];
+      for (const [key, label] of Object.entries(CATEGORIES)) {
+        lines.push("## " + label, "");
+        games.filter((g) => g.category === key).forEach((game) => {
+          const extra = [...game.tags, game.note].filter(Boolean).join(" ");
+          lines.push(extra ? game.title + " " + extra : game.title, "");
+        });
+      }
+      return lines.join("\n").trim() + "\n";
+    }
+
+    function download(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function categorySelect(game) {
+      return Object.entries(CATEGORIES).map(([id, label]) =>
+        '<option value="' + id + '"' + (game.category === id ? " selected" : "") + ">" + label + "</option>"
+      ).join("");
+    }
+
+    function renderDupes(dupes) {
+      const box = document.getElementById("dupes");
+      const body = document.getElementById("dupeBody");
+      const visible = dupes.map((group) => group.filter(matches)).filter((group) => group.length);
+      if (!dupes.length) { box.hidden = true; body.innerHTML = ""; return; }
+      box.hidden = false;
+      document.getElementById("keepFirstAll").hidden = !dupes.length;
+      if (!visible.length) {
+        body.innerHTML = '<tr><td class="empty" colspan="5">没有匹配搜索的重复项</td></tr>';
+        return;
+      }
+      body.innerHTML = visible.map((group) => {
+        const ids = group.map((g) => g.id).join(",");
+        return group.map((game, index) => `
+          <tr class="dup">
+            <td><div class="name-cell"><input class="cell" data-field="title" data-id="${game.id}" value="${escapeHtml(game.title)}" />${index === 0 ? '<span class="badge">' + group.length + ' 条</span>' : ""}</div></td>
+            <td><select class="cell cat-${game.category}" data-field="category" data-id="${game.id}">${categorySelect(game)}</select></td>
+            <td><input class="cell" data-field="tags" data-id="${game.id}" value="${escapeHtml(game.tags.join(", "))}" /></td>
+            <td><input class="cell" data-field="note" data-id="${game.id}" value="${escapeHtml(game.note)}" /></td>
+            <td class="act">
+              <button class="small primary" data-keep="${game.id}" data-group="${ids}">只留这条</button>
+              <button class="small ghost danger" data-act="del" data-id="${game.id}">删除</button>
+            </td>
+          </tr>
+        `).join("");
+      }).join("");
+    }
+
+    function renderSimilar(groups) {
+      const box = document.getElementById("similar");
+      const body = document.getElementById("similarBody");
+      const visible = groups.map((group) => group.filter(matches)).filter((group) => group.length > 1);
+      if (!visible.length) { box.hidden = true; body.innerHTML = ""; return; }
+      box.hidden = false;
+      body.innerHTML = visible.map((group) => group.map((game) => `
+        <tr class="similar">
+          <td><input class="cell" data-field="title" data-id="${game.id}" value="${escapeHtml(game.title)}" /></td>
+          <td><select class="cell cat-${game.category}" data-field="category" data-id="${game.id}">${categorySelect(game)}</select></td>
+          <td><input class="cell" data-field="tags" data-id="${game.id}" value="${escapeHtml(game.tags.join(", "))}" /></td>
+          <td><input class="cell" data-field="note" data-id="${game.id}" value="${escapeHtml(game.note)}" /></td>
+          <td class="act">
+            <button class="small ghost" data-act="edit" data-id="${game.id}">编辑</button>
+            <button class="small ghost danger" data-act="del" data-id="${game.id}">删除</button>
+          </td>
+        </tr>
+      `).join("")).join("");
+    }
+
+    function sortGames(list) {
+      const copy = list.map((game, index) => ({ game, index }));
+      copy.sort((a, b) => {
+        let av, bv;
+        if (sortKey === "index") return (a.index - b.index) * sortDir;
+        if (sortKey === "category") {
+          av = CATEGORIES[a.game.category];
+          bv = CATEGORIES[b.game.category];
+        } else if (sortKey === "tags") {
+          av = a.game.tags.join(",");
+          bv = b.game.tags.join(",");
+        } else {
+          av = a.game[sortKey] || "";
+          bv = b.game[sortKey] || "";
+        }
+        return String(av).localeCompare(String(bv), "zh") * sortDir;
+      });
+      return copy.map((item) => item.game);
+    }
+
+    function renderSheet(dupes) {
+      const dupeIds = new Set(dupes.flatMap((group) => group.map((g) => g.id)));
+      let rows = games.filter((game) => {
+        if (!matches(game)) return false;
+        if (hideDupes && dupeIds.has(game.id)) return false;
+        return true;
+      });
+      rows = sortGames(rows);
+      const body = document.getElementById("sheetBody");
+      if (!rows.length) {
+        body.innerHTML = '<tr><td class="empty" colspan="6">' + (query || filterCat ? "没有匹配项" : "还没有游戏") + "</td></tr>";
+      } else {
+        body.innerHTML = rows.map((game, i) => {
+          const dup = dupeIds.has(game.id);
+          return `
+            <tr class="${dup ? "dup" : ""}" data-id="${game.id}">
+              <td class="num">${i + 1}${dup ? ' <span class="badge">重复</span>' : ""}</td>
+              <td><input class="cell" data-field="title" data-id="${game.id}" value="${escapeHtml(game.title)}" /></td>
+              <td><select class="cell cat-${game.category}" data-field="category" data-id="${game.id}">${categorySelect(game)}</select></td>
+              <td><input class="cell" data-field="tags" data-id="${game.id}" value="${escapeHtml(game.tags.join(", "))}" /></td>
+              <td><input class="cell" data-field="note" data-id="${game.id}" value="${escapeHtml(game.note)}" /></td>
+              <td class="act">
+                <button class="small ghost" data-act="edit" data-id="${game.id}">编辑</button>
+                <button class="small ghost danger" data-act="del" data-id="${game.id}">删除</button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      }
+      const hidden = hideDupes ? games.filter((g) => dupeIds.has(g.id) && matches(g)).length : 0;
+      document.getElementById("sheetHint").textContent = hidden
+        ? "显示 " + rows.length + " 行，重复项 " + hidden + " 行已移到上方"
+        : "显示 " + rows.length + " 行";
+    }
+
+    function render() {
+      const dupes = exactDuplicateGroups();
+      const similar = similarGroups();
+      document.getElementById("statAll").textContent = games.length;
+      document.getElementById("statPlan").textContent = games.filter((g) => g.category === "plan").length;
+      document.getElementById("statFun").textContent = games.filter((g) => g.category === "fun").length;
+      document.getElementById("statSkip").textContent = games.filter((g) => g.category === "skip").length;
+      document.getElementById("statDup").textContent = dupes.length;
+      renderDupes(dupes);
+      renderSimilar(similar);
+      renderSheet(dupes);
+    }
+
+    function patchGame(id, field, value) {
+      const game = findGame(id);
+      if (!game) return;
+      if (field === "title") game.title = value.trim();
+      else if (field === "category") game.category = CATEGORIES[value] ? value : game.category;
+      else if (field === "tags") game.tags = parseTags(value);
+      else if (field === "note") game.note = value.trim();
+      save();
+      const active = document.activeElement;
+      const focusId = active && active.dataset ? active.dataset.id : "";
+      const focusField = active && active.dataset ? active.dataset.field : "";
+      render();
+      if (focusId && focusField) {
+        const el = document.querySelector('[data-field="' + focusField + '"][data-id="' + focusId + '"]');
+        if (el) {
+          el.focus();
+          if (typeof el.selectionStart === "number") {
+            const len = el.value.length;
+            el.setSelectionRange(len, len);
+          }
+        }
+      }
+    }
+
+    function openEditor(game) {
+      document.getElementById("editorTitle").textContent = game ? "编辑游戏" : "添加游戏";
+      document.getElementById("editId").value = game ? game.id : "";
+      document.getElementById("editTitle").value = game ? game.title : "";
+      document.getElementById("editCategory").value = game ? game.category : (filterCat || "plan");
+      document.getElementById("editTags").value = game ? game.tags.join(", ") : "";
+      document.getElementById("editNote").value = game ? game.note : "";
+      document.getElementById("editor").showModal();
+      document.getElementById("editTitle").focus();
+    }
+
+    function keepOnly(id, groupIds) {
+      const keep = findGame(id);
+      games = games.filter((game) => !groupIds.includes(game.id) || game.id === id);
+      save();
+      render();
+      toast("已只保留「" + keep.title + "」");
+    }
+
+    function importRows(parsed) {
+      games = parsed.map((item) => ({
+        id: item.id || uid(),
+        title: String(item.title || "").trim(),
+        category: CATEGORIES[item.category] ? item.category : (
+          Object.entries(CATEGORIES).find(([, label]) => label === item.category)?.[0] || "plan"
+        ),
+        tags: Array.isArray(item.tags) ? item.tags.filter(Boolean) : parseTags(item.tags || ""),
+        note: String(item.note || ""),
+      })).filter((item) => item.title);
+      save();
+      render();
+      toast("已导入 " + games.length + " 条");
+    }
+
+    function importCsv(text) {
+      const rows = parseCsv(text);
+      if (!rows.length) throw new Error("empty");
+      const header = rows[0].map((h) => h.trim());
+      const map = { "名称": "title", "标题": "title", title: "title", "分类": "category", category: "category", "标签": "tags", tags: "tags", "备注": "note", note: "note" };
+      const idx = {};
+      header.forEach((h, i) => { if (map[h]) idx[map[h]] = i; });
+      const start = idx.title != null ? 1 : 0;
+      const items = rows.slice(start).map((row) => ({
+        title: row[idx.title ?? 0] || "",
+        category: row[idx.category ?? 1] || "plan",
+        tags: parseTags(row[idx.tags ?? 2] || ""),
+        note: row[idx.note ?? 3] || "",
+      }));
+      importRows(items);
+    }
+
+    document.getElementById("search").addEventListener("input", (e) => {
+      query = e.target.value.trim().toLowerCase();
+      render();
+    });
+    document.getElementById("filterCat").addEventListener("change", (e) => {
+      filterCat = e.target.value;
+      render();
+    });
+    document.getElementById("hideDupes").addEventListener("change", (e) => {
+      hideDupes = e.target.checked;
+      render();
+    });
+    document.getElementById("addBtn").addEventListener("click", () => openEditor(null));
+    document.getElementById("cancelEdit").addEventListener("click", () => document.getElementById("editor").close());
+    document.getElementById("editorForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const id = document.getElementById("editId").value;
+      const title = document.getElementById("editTitle").value.trim();
+      const category = document.getElementById("editCategory").value;
+      const tags = parseTags(document.getElementById("editTags").value);
+      const note = document.getElementById("editNote").value.trim();
+      if (!title) return;
+      if (id) {
+        const game = findGame(id);
+        if (!game) return;
+        Object.assign(game, { title, category, tags, note });
+        toast("已更新");
+      } else {
+        games.unshift({ id: uid(), title, category, tags, note });
+        toast("已添加");
+      }
+      save();
+      render();
+      document.getElementById("editor").close();
+    });
+    document.getElementById("composer").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const title = document.getElementById("newTitle").value.trim();
+      if (!title) return;
+      games.push({
+        id: uid(),
+        title,
+        category: document.getElementById("newCategory").value,
+        tags: parseTags(document.getElementById("newTags").value),
+        note: document.getElementById("newNote").value.trim(),
+      });
+      document.getElementById("newTitle").value = "";
+      document.getElementById("newTags").value = "";
+      document.getElementById("newNote").value = "";
+      save();
+      render();
+      toast("已追加一行");
+    });
+    document.addEventListener("change", (e) => {
+      const field = e.target.closest("[data-field]");
+      if (!field) return;
+      patchGame(field.dataset.id, field.dataset.field, field.value);
+      toast("已保存");
+    });
+    document.addEventListener("click", (e) => {
+      const keep = e.target.closest("[data-keep]");
+      if (keep) {
+        keepOnly(keep.dataset.keep, keep.dataset.group.split(","));
+        return;
+      }
+      const sort = e.target.closest("th[data-sort]");
+      if (sort) {
+        const key = sort.dataset.sort;
+        if (sortKey === key) sortDir *= -1;
+        else { sortKey = key; sortDir = 1; }
+        render();
+        return;
+      }
+      const btn = e.target.closest("button[data-act]");
+      if (!btn) return;
+      const game = findGame(btn.dataset.id);
+      if (!game) return;
+      if (btn.dataset.act === "edit") openEditor(game);
+      if (btn.dataset.act === "del") {
+        if (!confirm("删除「" + game.title + "」？")) return;
+        games = games.filter((g) => g.id !== game.id);
+        save();
+        render();
+        toast("已删除");
+      }
+    });
+    document.getElementById("keepFirstAll").addEventListener("click", () => {
+      const dupes = exactDuplicateGroups();
+      const remove = new Set();
+      dupes.forEach((group) => group.slice(1).forEach((g) => remove.add(g.id)));
+      if (!remove.size) return;
+      if (!confirm("将删除 " + remove.size + " 条重复记录，每组只留第一条。继续？")) return;
+      games = games.filter((g) => !remove.has(g.id));
+      save();
+      render();
+      toast("已按组去重");
+    });
+    document.getElementById("exportCsvBtn").addEventListener("click", () => {
+      download("GameList.csv", toCsv(), "text/csv;charset=utf-8");
+      toast("已导出 CSV");
+    });
+    document.getElementById("exportMdBtn").addEventListener("click", () => {
+      download("GameList.md", toMarkdown(), "text/markdown;charset=utf-8");
+      toast("已导出 Markdown");
+    });
+    document.getElementById("exportJsonBtn").addEventListener("click", () => {
+      download("GameList.json", JSON.stringify(games, null, 2), "application/json");
+      toast("已导出 JSON");
+    });
+    document.getElementById("importBtn").addEventListener("click", () => document.getElementById("fileInput").click());
+    document.getElementById("fileInput").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      try {
+        const text = await file.text();
+        if (/\.csv$/i.test(file.name) || file.type.includes("csv")) importCsv(text);
+        else importRows(JSON.parse(text));
+      } catch {
+        toast("导入失败，请检查 CSV / JSON");
+      }
+    });
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      if (!confirm("恢复为 GameList.md 的原始内容？当前改动会丢失。")) return;
+      games = seed(DEFAULT_GAMES);
+      save();
+      render();
+      toast("已恢复原文");
+    });
+
+    games = load();
+    render();
+  </script>
+</body>
+</html>
