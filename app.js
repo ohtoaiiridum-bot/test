@@ -263,17 +263,19 @@ function renderStats(dupes) {
   els.stats.textContent = `共 ${state.games.length} 款 · ${counts.join(" · ")}${extra}`;
 }
 
+function categorySelect(game) {
+  const options = CATEGORIES.map(
+    (category) =>
+      `<option value="${category.id}" ${category.id === game.category ? "selected" : ""}>${category.name}</option>`
+  ).join("");
+  return `<select class="move-select" data-move-select="${game.id}" aria-label="移动分类">${options}</select>`;
+}
+
 function actionButtons(game, extra = "") {
-  const moves = CATEGORIES.filter((category) => category.id !== game.category)
-    .map(
-      (category) =>
-        `<button type="button" class="btn tiny" data-move="${game.id}" data-category="${category.id}">移到${category.name}</button>`
-    )
-    .join("");
   return `
     <div class="item-actions">
+      ${categorySelect(game)}
       <button type="button" class="btn tiny" data-edit="${game.id}">编辑</button>
-      ${moves}
       <button type="button" class="btn tiny danger" data-delete="${game.id}">删除</button>
       ${extra}
     </div>
@@ -479,7 +481,6 @@ function onClick(event) {
   if (move) {
     moveGame(move.dataset.move, move.dataset.category);
     toast("已移动分类");
-    return;
   }
   const add = event.target.closest("[data-add]");
   if (add) {
@@ -545,6 +546,12 @@ function init() {
   document.getElementById("cancel-edit").addEventListener("click", () => els.editor.close());
   els.form.addEventListener("submit", upsertFromForm);
   document.body.addEventListener("click", onClick);
+  document.body.addEventListener("change", (event) => {
+    const moveSelect = event.target.closest("[data-move-select]");
+    if (!moveSelect) return;
+    moveGame(moveSelect.dataset.moveSelect, moveSelect.value);
+    toast("已移动分类");
+  });
   document.getElementById("keep-first-all").addEventListener("click", () => {
     keepFirstInGroups(exactDuplicateGroups(state.games));
   });
