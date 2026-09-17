@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>游戏列表</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="top">
+        <div>
+          <p class="eyebrow">Game List</p>
+          <h1>游戏列表</h1>
+          <p class="sub">从 Markdown 转来的本地清单，可增删改查、移动分类，重复项单独处理。</p>
+        </div>
+        <div class="top-actions">
+          <button type="button" class="btn" id="export-md">导出 Markdown</button>
+          <button type="button" class="btn" id="export-json">导出 JSON</button>
+          <label class="btn file-btn">
+            导入 JSON
+            <input type="file" id="import-json" accept="application/json,.json" hidden />
+          </label>
+          <button type="button" class="btn danger-ghost" id="reset-data">恢复原文</button>
+        </div>
+      </header>
+
+      <section class="toolbar">
+        <label class="search">
+          <span class="sr-only">搜索游戏</span>
+          <input type="search" id="search" placeholder="搜索游戏名或备注…" autocomplete="off" />
+        </label>
+        <button type="button" class="btn primary" id="add-game">添加游戏</button>
+        <label class="toggle">
+          <input type="checkbox" id="hide-dupes" checked />
+          主列表隐藏重复项
+        </label>
+        <p class="stats" id="stats"></p>
+      </section>
+
+      <section class="dupes" id="dupes" hidden>
+        <div class="dupes-head">
+          <div>
+            <h2>重复项</h2>
+            <p>同名游戏会从主列表抽到这里，方便对比后只留一条。</p>
+          </div>
+          <button type="button" class="btn" id="keep-first-all">每组保留第一条</button>
+        </div>
+        <div class="dupe-groups" id="dupe-groups"></div>
+        <div class="similar" id="similar" hidden>
+          <h3>可能重复</h3>
+          <p>名字接近但不完全相同，需要你自己判断。</p>
+          <div id="similar-groups"></div>
+        </div>
+      </section>
+
+      <section class="board" id="board"></section>
+    </div>
+
+    <dialog class="modal" id="editor">
+      <form method="dialog" id="editor-form">
+        <h2 id="editor-title">添加游戏</h2>
+        <label>
+          名称
+          <input type="text" name="title" required maxlength="120" />
+        </label>
+        <label>
+          备注
+          <input type="text" name="note" maxlength="80" placeholder="例如 EA、生肉、没中文" />
+        </label>
+        <label>
+          分类
+          <select name="category"></select>
+        </label>
+        <menu>
+          <button type="submit" class="btn primary" value="save">保存</button>
+          <button type="button" class="btn" id="cancel-edit" value="cancel">取消</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" hidden></div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
